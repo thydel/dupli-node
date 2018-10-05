@@ -1,0 +1,12 @@
+*~
+.cache
+.retry
+.hide
+roles
+log
+tmp
+ext
+ansible.cfg
+ssh-config
+vault-pass.py
+inventory/local
