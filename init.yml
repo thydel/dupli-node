@@ -1,0 +1,154 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: Defines YAML macros
+  hosts: localhost
+  gather_facts: False
+  vars:
+    macros:
+      - &ro
+        changed_when: False
+        check_mode: False
+      - &lo
+        delegate_to: localhost
+        run_once: True
+      - &rolo
+        <<: *ro
+        <<: *lo
+    constants:
+      - &common
+        private_repos_file: private-repos.yml
+        keys_file: keys.yml
+
+- name: Assertions
+  hosts: all
+  gather_facts: False
+  run_once: True
+  tags: always
+  vars: { <<: *common }
+  tasks:
+    - <<: *lo
+      block:
+      - assert:
+          that: running_ansible_version is version(local_min_ansible_version, '>=')
+          fail_msg: min ansible version is {{ local_min_ansible_version }}, ansible version is {{ running_ansible_version }}
+        vars:
+          default_min_ansible_version: 2.7
+          running_ansible_version: '{{ ansible_version.major ~ "." ~ ansible_version.minor }}'
+          local_min_ansible_version: '{{ min_ansible_version | default(default_min_ansible_version) }}'
+        name: Assert {{ running_ansible_version }} >= {{ local_min_ansible_version }}
+
+      - stat: { path: '{{ file }}' }
+        vars: &prf { file: '{{ private_repos_file }}' }
+        register: st
+        name: Stat {{ file }}
+      - assert:
+          that: st.stat.exists
+          fail_msg: |
+            Create a {{ file }} file to define
+            - data_nodes_repo
+        vars: *prf
+        name: Assert {{ file }}
+
+      - stat: { path: '{{ file }}' }
+        vars: &kf { file: '{{ keys_file }}' }
+        register: st
+        name: Stat {{ file }}
+      - assert:
+          that: st.stat.exists
+          fail_msg: |
+            Create a {{ file }} file to define
+            - data_nodes_repo
+        vars: *kf
+        name: Assert {{ file }}
+
+
+      vars: &assert { assertions: '{{ not no_assert | default(False) }}' }
+      when: assertions
+      name: Ansible version {{ keys_file }} and {{ private_repos_file }}
+
+- name: Assertions
+  hosts: all
+  gather_facts: False
+  run_once: True
+  tags: always
+  tasks:
+    - <<: *lo
+      block:
+
+      - <<: *ro
+        command: ssh-add -l
+        register: ssh_add
+        name: Get cached ssh keys
+      - assert:
+          that: ssh_add.rc == 0
+          fail_msg: Empty ssh agent
+        name: Assert we have cached ssh keys
+
+      - git_config:
+          name: user.email
+          repo: .
+          scope: local
+        register: git_config
+        name: Get user email from git config
+      - <<: *ro
+        name: Get keygrip of GPG key using email ID
+        command: gpg2 --fingerprint --with-keygrip '<{{ git_config.config_value }}>'
+        register: gpg_keygrip
+      - assert:
+          that: gpg_keygrip.rc == 0
+          fail_msg: '{{ gpg_keygrip.stderr }}'
+        name: Assert keygrip
+      - <<: *ro
+        name: Get gpg-agent cache status for GPG passphrase 
+        command: gpg-connect-agent
+        register: gpg_connect_agent
+        args:
+          stdin: keyinfo {{ gpg_keygrip.stdout_lines[-1].split()[-1] }}
+      - assert:
+          that: gpg_connect_agent.stdout_lines[0].split()[6]|int == 1
+          fail_msg: passphrase for {{ git_config.config_value }} uncached
+
+      vars: { <<: *assert, agent_check: '{{ not no_agent_check | default(False) }}' }
+      when: agent_check and assertions
+      name: Check ssh and gpg agent
+
+- hosts: all
+  gather_facts: False
+
+  vars:
+    <<: *common
+    workdir: ext
+
+  vars_files: [ '{{ private_repos_file }}', '{{ key_file }}' ]
+
+  tasks:
+
+    - set_fact:
+        git_ssh_key_file: |-
+          {{ lookup('env', 'GIT_SSH_KEY_FILE') | default('~/.ssh/' ~ default_key, True) }}
+      name: Define git_ssh_key_file
+
+    - file:
+        path: '{{ workdir }}'
+        state: directory
+      <<: *lo
+      name: Create {{ workdir }}
+
+    - git:
+        repo: '{{ data_nodes_repo }}'
+        dest: &data_nodes '{{ data_nodes_git }}'
+        key_file: '{{ git_ssh_key_file }}'
+      <<: *lo
+      tags: clone
+      name: Get password store repo
+
+    - git_config:
+        repo: '{{ item }}'
+        name: core.sshCommand
+        scope: local
+        value: ssh -i {{ git_ssh_key_file }} -F /dev/null
+      <<: *lo
+      loop: [ *data_nodes ]
+      name: Configure core.sshCommand
+
