@@ -1,0 +1,6 @@
+---
+
+- name: Prepare backup node
+  hosts: backups
+  gather_facts: False
+

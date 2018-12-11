@@ -12,3 +12,4 @@ vault-pass.py
 inventory/local
 private-repos.yml
 keys.yml
+inventory/*_out.yml

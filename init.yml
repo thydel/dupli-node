@@ -58,7 +58,7 @@
           that: st.stat.exists
           fail_msg: |
             Create a {{ file }} file to define
-            - data_nodes_repo
+            - default_key
         vars: *kf
         name: Assert {{ file }}
 
@@ -119,8 +119,9 @@
   vars:
     <<: *common
     workdir: ext
+    data_nodes_dir: '{{ workdir }}/data_nodes'
 
-  vars_files: [ '{{ private_repos_file }}', '{{ key_file }}' ]
+  vars_files: [ '{{ private_repos_file }}', '{{ keys_file }}' ]
 
   tasks:
 
@@ -137,11 +138,11 @@
 
     - git:
         repo: '{{ data_nodes_repo }}'
-        dest: &data_nodes '{{ data_nodes_git }}'
+        dest: &data_nodes '{{ data_nodes_dir }}'
         key_file: '{{ git_ssh_key_file }}'
       <<: *lo
       tags: clone
-      name: Get password store repo
+      name: Get data nodes repo
 
     - git_config:
         repo: '{{ item }}'
