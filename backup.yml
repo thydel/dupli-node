@@ -1,6 +1,26 @@
+#!/usr/bin/env ansible-playbook
 ---
 
 - name: Prepare backup node
   hosts: backups
   gather_facts: False
 
+  vars:
+    aname: duplicity
+    adir: /space
+
+  tasks:
+
+    - user:
+        name: &name '{{ aname }}'
+        comment: Duplicity User
+      become: True
+      name: Creare {{ aname }} user
+
+    - file:
+        path: '{{ adir }}/{{ aname }}'
+        state: directory
+        owner: *name
+        group: *name
+      become: True
+      name: Create {{ aname }} store dir
