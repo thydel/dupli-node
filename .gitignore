@@ -12,4 +12,8 @@ vault-pass.py
 inventory/local
 private-repos.yml
 keys.yml
+inventory/local.yml
 inventory/*_out.yml
+ansible-cfg
+ansible.cfg
+*.retry
