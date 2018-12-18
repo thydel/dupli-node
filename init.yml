@@ -91,6 +91,9 @@
           scope: local
         register: git_config
         name: Get user email from git config
+      - assert:
+          that: git_config.config_value != ''
+          fail_msg: configure git user.email
       - <<: *ro
         name: Get keygrip of GPG key using email ID
         command: gpg2 --fingerprint --with-keygrip '<{{ git_config.config_value }}>'
