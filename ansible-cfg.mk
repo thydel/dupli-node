@@ -9,5 +9,5 @@ $(stone): ansible-cfg.jsonnet; mkdir -p $(@D); jsonnet -m $(@D) -S $< && touch $
 
 confs := mini full simple
 $(confs): $(stone); ln -sf ansible-cfg/$@.cfg ansible.cfg
-main: mini
+main: full
 .PHONY: $(confs) main
