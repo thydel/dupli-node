@@ -1,5 +1,5 @@
 local sets = {
-  oxa: import 'ext/data_nodes/oxa-duplicity.jsonnet',
+  oxa: import 'ext/data-nodes/oxa-duplicity.jsonnet',
   lxc: import 'nodes-lxc.jsonnet',
 };
 
