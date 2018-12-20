@@ -1,0 +1,154 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: Generate, commit and install ssh keys for a duplicity node
+  hosts: space:sqldump
+  gather_facts: False
+
+  vars_files: paths.yml
+  vars:
+    app_etc: '{{ app_base }}/etc'
+    ssh_key_name: &ssh_key_name '{{ inventory_hostname }}-{{ app_name }}'
+    ssh_key_path: &ssh_key_path '{{ app_etc }}/{{ ssh_key_name }}'
+    ssh_pub_key_path: &ssh_pub_key_path '{{ ssh_key_path }}.pub'
+    local_ssh_key_path: &local_ssh_key_path '{{ ssh_store_dir }}/{{ ssh_key_name }}'
+    local_ssh_pub_key_path: &local_ssh_pub_key_path '{{ local_ssh_key_path }}.pub'
+    local_cpt_ssh_key_path: &local_cpt_ssh_key_path '{{ local_ssh_key_path }}.priv'
+    macros:
+    - &ssh_store '{{ ssh_store }}'
+    - &app_name '{{ app_name }}'
+    - &ro
+      changed_when: False
+      check_mode: False
+
+  tasks:
+
+    - become: True
+      block:
+      - file:
+          path: '{{ app_etc }}'
+          state: directory
+        name: Create {{ app_name }} etc dir
+      - command:
+        args:
+          argv: [ ssh-keygen, -N, '', -f, *ssh_key_path, -C, *ssh_key_name ]
+          creates: *ssh_key_path
+        name: generate {{ ssh_key_name }} ssh key pair
+      - fetch:
+          src: '{{ item }}'
+          dest: '{{ ssh_store_dir }}/'
+          owner: '{{ lookup("env", "USER") }}'
+          mode: preserve # Seems useless
+          fail_on_missing: True
+          flat: True
+        loop: [ *ssh_key_path, *ssh_pub_key_path ]
+        name: Get local copy of {{ ssh_key_name }} generated key pair
+
+    - { meta: noop, name: top }
+
+    - delegate_to: local
+      block:
+      - lineinfile:
+          path: '{{ ssh_store_dir }}/.gitignore'
+          line: *ssh_key_name
+          create: True
+        name: Do not commit clear key
+      - file: { path: *local_ssh_key_path, state: file, mode: 0600 }
+        name: Set correct mode to local copy
+      - stat: { path: *local_cpt_ssh_key_path }
+        register: afile
+        name: Check if copy of private keys exists
+      - meta: noop
+        vars:
+          _: |
+            Dammit ansible namespace
+            Use `register: file` will break `authorized_key` module
+      - copy:
+          src: *local_ssh_key_path
+          dest: *local_cpt_ssh_key_path
+          remote_src: True
+          mode: preserve
+        when: afile.stat.exists == False
+        name: Copy private key
+      - meta: noop
+        name: "We can't use copy module alone because we'll change file after copy"
+      - command:
+        <<: *ro
+        args: { argv: [ grep, -q, ENCRYPTED, *local_cpt_ssh_key_path ] }
+        register: grep
+        failed_when: grep.rc > 1
+        name: Check if copy of private key is encrypted
+
+    - when: grep.rc == 1
+      block:
+      - set_fact:
+          passphrase: |-
+            {{ lookup('passwordstore', password) }}
+        vars:
+          email: '{{ app_name }}@{{ inventory_hostname }}'
+          password: '{{ app_name }}/{{ email }} directory={{ password_store_dir }}'
+        name: Get duplicity password
+      - command:
+        args:
+          argv: [ ssh-keygen, -p, -N, '{{ passphrase }}', -f, *local_cpt_ssh_key_path ]
+        delegate_to: local
+        name: Set password to copy of private ssh key
+
+    - delegate_to: local
+      block:
+
+      - meta: noop
+        vars:
+          macros: &repos
+          - args: { chdir: '{{ repos }}' }
+            vars: { repos: *ssh_store }
+
+      - command: git ls-files --exclude-standard --others
+        <<: *ro
+        <<: *repos
+        register: untracked
+        name: Get untracked files of {{ repos }}
+
+      - command: git add .
+        <<: *repos
+        when: untracked.stdout_lines | length
+        name: Add untracked on {{ repos }}
+
+      - command: git ls-files --exclude-standard --modified
+        <<: *ro
+        <<: *repos
+        register: uncommited
+        name: Get uncommited changes of {{ repos }}
+
+      - command: git ci -am '{{ comment }}'
+        vars: { repos: *ssh_store, comment: 'Adds {{ ssh_key_name }} via ansible' }
+        args: { chdir: '{{ repos }}' }
+        when: uncommited.stdout_lines | length
+        name: Commit {{ ssh_key_name }} on {{ repos }}
+
+      - command: git rev-parse @
+        <<: *ro
+        <<: *repos
+        register: head
+        name: Get head of {{ repos }}
+
+      - command: git rev-parse @{u}
+        <<: *ro
+        <<: *repos
+        register: upstream
+        name: Get upstream of {{ repos }}
+
+      - command: git push
+        <<: *repos
+        when: head.stdout != upstream.stdout
+        name: Push {{ repos }}
+
+    - authorized_key:
+        user: *app_name
+        key: '{{ lookup(file, local_ssh_pub_key_path) }}'
+      vars: { file: file }
+      delegate_to: backup4
+      become: True
+      name: Install key to backup store node
+
+    - { meta: end_play, tags: always }
