@@ -2,6 +2,7 @@
 
 ```
 ansible-cfg.mk main
+ansible-cfg.yml
 ```
 
 # Generate minimal inventory
@@ -27,4 +28,11 @@ Uses `data_nodes_repo`
 
 ```
 inventories.mk main
+```
+
+# Install backupninja
+
+```
+install-backupninja.mk
+install-backupninja.yml -l node
 ```
