@@ -147,8 +147,9 @@
         user: *app_name
         key: '{{ lookup(file, local_ssh_pub_key_path) }}'
       vars: { file: file }
-      delegate_to: backup4
+      delegate_to: '{{ item }}'
       become: True
+      loop: '{{ groups.backups }}'
       name: Install key to backup store node
 
     - { meta: end_play, tags: always }
