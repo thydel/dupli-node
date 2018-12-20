@@ -1,0 +1,19 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: Creates {{ title }}
+  hosts: local
+  gather_facts: False
+
+  vars_files: ansible-cfg/dirs.yml
+  vars: { title: ansible-cfg dirs }
+
+  tasks:
+
+    - file: { path: '{{ item }}', state: directory }
+      loop: '{{ dirs }}'
+      name: Creates {{ title }}
+
+    - lineinfile: { path: .gitignore, line: '{{ item }}', create: True }
+      loop: '{{ gitignore }}'
+      name: Do not commit {{ title }}

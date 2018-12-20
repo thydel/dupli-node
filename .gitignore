@@ -17,3 +17,5 @@ inventory/*_out.yml
 ansible-cfg
 ansible.cfg
 *.retry
+inventory
+.cache/ansible
