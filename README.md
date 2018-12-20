@@ -36,3 +36,9 @@ inventories.mk main
 install-backupninja.mk
 install-backupninja.yml -l node
 ```
+
+# Install duplicity
+
+```
+install-duplicity.yml -l node
+```

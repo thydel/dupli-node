@@ -1,0 +1,58 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: Install duplicity
+  hosts: duplicity
+
+  vars:
+
+    aname: duplicity
+    serie: 0.7
+    version: 18.2
+    base: '{{ aname }}-{{ serie }}.{{ version }}'
+    targz: '{{ base }}.tar.gz'
+    urlt: >
+      https://code.launchpad.net/{{ aname }}/
+      {{ serie }}-series/{{ serie }}.{{ version }}/
+      +download/{{ targz }}
+    url: '{{ urlt | replace(" ", "") }}'
+    local: /usr/local
+    tmp: '{{ local }}/tmp'
+    src: '{{ local }}/src'
+    bin: '{{ local }}/bin'
+
+  tasks:
+
+    - delegate_to: local
+      block:
+
+      - name: Create tmp dir
+        file: { path: tmp, state: directory }
+
+      - name: Do not commit tmp
+        lineinfile: { path: .gitignore, line: tmp, create: True }
+
+      - name: Get release from official site
+        environment: '{{ proxy_env | default({}) }}'
+        get_url:
+          url: '{{ url }}'
+          dest: '{{ playbook_dir }}/tmp'
+
+    - become: True
+      block:
+
+      - name: Extract tar
+        unarchive:
+          src: tmp/{{ targz }}
+          dest: '{{ local }}/src'
+          extra_opts: --no-same-owner
+          creates: '{{ src }}/{{ base }}'
+
+      - name: Install deps
+        apt: { name: [ gcc, python-dev, python-setuptools, python-fasteners, librsync-dev ] }
+
+      - name: Install
+        command: python setup.py install --prefix={{ local }} --record files.txt
+        args:
+          chdir: '{{ src }}/{{ base }}'
+          creates: '{{ bin }}/{{ aname }}'
