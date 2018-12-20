@@ -33,7 +33,7 @@ inventories.mk main
 # Install backupninja
 
 ```
-install-backupninja.mk
+install-backupninja.mk # for roles requirements
 install-backupninja.yml -l node
 ```
 
@@ -41,4 +41,10 @@ install-backupninja.yml -l node
 
 ```
 install-duplicity.yml -l node
+```
+
+# Generate and install ssh keys
+
+```
+ssh-keygen.yml -l node
 ```
