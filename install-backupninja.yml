@@ -1,0 +1,33 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: Install backupninja
+  hosts: backupninja
+
+  tasks:
+
+    - { name: Use augeas, import_role: { name: augeas }}
+
+    - become: True
+      block:
+
+      - name: Install pkgs
+        apt: { name: [ backupninja, augeas-tools, python-augeas, python-yaml ] }
+
+      - name: Install augeas lens
+        copy:
+          content: |
+            module PhpLike =
+                autoload xfm
+                let filter = incl "/etc/backupninja.conf"
+                let xfm = transform Php.lns filter
+          dest: /usr/share/augeas/lenses/phplike.aug
+
+      - name: Config backupninja
+        loop:
+          - { option: reportinfo, value: 'yes' }
+          - { option: reportspace, value: 'yes' }
+        augeas:
+          command: set
+          path: /files/etc/backupninja.conf/.anon/{{ item.option }}
+          value: '{{ item.value }}'
