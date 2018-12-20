@@ -122,7 +122,13 @@
   vars:
     <<: *common
     workdir: ext
-    data_nodes_dir: '{{ workdir }}/data_nodes'
+    private_repos:
+      - repo: '{{ data_nodes_repo }}'
+        dir: '{{ workdir }}/data-nodes'
+      - repo: '{{ ssh_store_repo }}'
+        dir: '{{ workdir }}/ssh-store'
+      - repo: '{{ password_store_repo }}'
+        dir: '{{ workdir }}/password-store'
 
   vars_files: [ '{{ private_repos_file }}', '{{ keys_file }}' ]
 
@@ -140,19 +146,21 @@
       name: Create {{ workdir }}
 
     - git:
-        repo: '{{ data_nodes_repo }}'
-        dest: &data_nodes '{{ data_nodes_dir }}'
+        repo: '{{ item.repo }}'
+        dest: '{{ item.dir }}'
         key_file: '{{ git_ssh_key_file }}'
       <<: *lo
-      tags: clone
-      name: Get data nodes repo
+      loop: '{{ private_repos }}'
+      name: Get private repos
 
     - git_config:
-        repo: '{{ item }}'
+        repo: '{{ item.dir }}'
         name: core.sshCommand
         scope: local
         value: ssh -i {{ git_ssh_key_file }} -F /dev/null
       <<: *lo
-      loop: [ *data_nodes ]
+      loop: '{{ private_repos }}'
       name: Configure core.sshCommand
 
+    - meta: end_play
+      tags: always
