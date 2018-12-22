@@ -48,3 +48,11 @@ install-duplicity.yml -l node
 ```
 ssh-keygen.yml -l node
 ```
+
+# Generate dups
+
+Uses `data_nodes_repo`
+
+```
+dups.mk main
+```
