@@ -1,138 +1,23 @@
 #!/usr/bin/env ansible-playbook
 ---
 
-- name: Defines YAML macros
-  hosts: localhost
+- import_playbook: asserts.yml
+
+- hosts: localhost
   gather_facts: False
-  vars:
-    macros:
-      - &ro
-        changed_when: False
-        check_mode: False
-      - &lo
-        delegate_to: localhost
-        run_once: True
-      - &rolo
-        <<: *ro
-        <<: *lo
-    constants:
-      - &common
-        private_repos_file: private-repos.yml
-        keys_file: keys.yml
 
-- name: Assertions
-  hosts: all
-  gather_facts: False
-  run_once: True
-  tags: always
-  vars: { <<: *common }
-  tasks:
-    - <<: *lo
-      block:
-      - assert:
-          that: running_ansible_version is version(local_min_ansible_version, '>=')
-          fail_msg: min ansible version is {{ local_min_ansible_version }}, ansible version is {{ running_ansible_version }}
-        vars:
-          default_min_ansible_version: 2.7
-          running_ansible_version: '{{ ansible_version.major ~ "." ~ ansible_version.minor }}'
-          local_min_ansible_version: '{{ min_ansible_version | default(default_min_ansible_version) }}'
-        name: Assert {{ running_ansible_version }} >= {{ local_min_ansible_version }}
-
-      - stat: { path: '{{ file }}' }
-        vars: &prf { file: '{{ private_repos_file }}' }
-        register: st
-        name: Stat {{ file }}
-      - assert:
-          that: st.stat.exists
-          fail_msg: |
-            Create a {{ file }} file to define
-            - data_nodes_repo
-        vars: *prf
-        name: Assert {{ file }}
-
-      - stat: { path: '{{ file }}' }
-        vars: &kf { file: '{{ keys_file }}' }
-        register: st
-        name: Stat {{ file }}
-      - assert:
-          that: st.stat.exists
-          fail_msg: |
-            Create a {{ file }} file to define
-            - default_key
-        vars: *kf
-        name: Assert {{ file }}
-
-
-      vars: &assert { assertions: '{{ not no_assert | default(False) }}' }
-      when: assertions
-      name: Ansible version {{ keys_file }} and {{ private_repos_file }}
-
-- name: Assertions
-  hosts: all
-  gather_facts: False
-  run_once: True
-  tags: always
-  tasks:
-    - <<: *lo
-      block:
-
-      - <<: *ro
-        command: ssh-add -l
-        register: ssh_add
-        name: Get cached ssh keys
-      - assert:
-          that: ssh_add.rc == 0
-          fail_msg: Empty ssh agent
-        name: Assert we have cached ssh keys
-
-      - git_config:
-          name: user.email
-          repo: .
-          scope: local
-        register: git_config
-        name: Get user email from git config
-      - assert:
-          that: git_config.config_value != ''
-          fail_msg: configure git user.email
-      - <<: *ro
-        name: Get keygrip of GPG key using email ID
-        command: gpg2 --fingerprint --with-keygrip '<{{ git_config.config_value }}>'
-        register: gpg_keygrip
-      - assert:
-          that: gpg_keygrip.rc == 0
-          fail_msg: '{{ gpg_keygrip.stderr }}'
-        name: Assert keygrip
-      - <<: *ro
-        name: Get gpg-agent cache status for GPG passphrase 
-        command: gpg-connect-agent
-        register: gpg_connect_agent
-        args:
-          stdin: keyinfo {{ gpg_keygrip.stdout_lines[-1].split()[-1] }}
-      - assert:
-          that: gpg_connect_agent.stdout_lines[0].split()[6]|int == 1
-          fail_msg: passphrase for {{ git_config.config_value }} uncached
-
-      vars: { <<: *assert, agent_check: '{{ not no_agent_check | default(False) }}' }
-      when: agent_check and assertions
-      name: Check ssh and gpg agent
-
-- hosts: all
-  gather_facts: False
+  vars_files: paths.yml
 
   vars:
-    <<: *common
-    workdir: ext
-    private_repos:
-      - repo: '{{ data_nodes_repo }}'
-        dir: '{{ workdir }}/data-nodes'
-      - repo: '{{ ssh_store_repo }}'
-        dir: '{{ workdir }}/ssh-store'
-      - repo: '{{ password_store_repo }}'
-        dir: '{{ workdir }}/password-store'
-
-  vars_files: [ '{{ private_repos_file }}', '{{ keys_file }}' ]
+    git_config_items: [ user.email, user.signingkey, format.pretty ]
 
   tasks:
+
+    - { meta: noop, name: top }
+
+    - include_vars: '{{ item }}'
+      loop: [ '{{ private_repos_file }}', '{{ keys_file }}' ]
+      tags: always
 
     - set_fact:
         git_ssh_key_file: |-
@@ -142,25 +27,42 @@
     - file:
         path: '{{ workdir }}'
         state: directory
-      <<: *lo
       name: Create {{ workdir }}
 
     - git:
-        repo: '{{ item.repo }}'
-        dest: '{{ item.dir }}'
+        repo: '{{ item.src }}'
+        version: '{{ item.version }}'
+        dest: '{{ workdir }}/{{ item.name }}'
         key_file: '{{ git_ssh_key_file }}'
-      <<: *lo
       loop: '{{ private_repos }}'
       name: Get private repos
 
     - git_config:
-        repo: '{{ item.dir }}'
+        repo: '{{ workdir }}/{{ item.name }}'
         name: core.sshCommand
         scope: local
         value: ssh -i {{ git_ssh_key_file }} -F /dev/null
-      <<: *lo
       loop: '{{ private_repos }}'
       name: Configure core.sshCommand
 
-    - meta: end_play
-      tags: always
+    - git_config:
+        name: '{{ item }}'
+        repo: .
+        scope: local
+      loop: '{{ git_config_items }}'
+      register: git_config
+      name: Get user email from self git config
+      tags: conf
+
+    - git_config:
+        repo: '{{ workdir }}/{{ item[0].name }}'
+        name: '{{ item[1].item }}'
+        scope: local
+        value: '{{ item[1].config_value }}'
+      with_nested:
+        - '{{ private_repos }}'
+        - '{{ git_config.results }}'
+      loop_control:
+        label: '{{ item[0].name }} {{ item[1].item }}'
+      name: Configure private repos from local repos for {{ git_config_items | join(', ') }}
+      tags: conf
