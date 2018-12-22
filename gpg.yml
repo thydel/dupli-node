@@ -1,0 +1,263 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: Defines YAML macros
+  hosts: localhost
+  gather_facts: False
+  vars:
+    macros:
+      - &ro
+        changed_when: False
+        check_mode: False
+      - &lo
+        delegate_to: localhost
+      - &loo
+        <<: *lo
+        run_once: True
+
+- import_playbook: asserts.yml
+
+- hosts: duplicity
+  gather_facts: False
+
+  vars_files: paths.yml
+
+  vars:
+
+    gnupg_repo: '{{ workdir }}/gpg-store'
+    gnupg_user: '{{ user | default("duplicity") }}'
+    gnupg_homedir: '{{ gnupg_repo }}/{{ gnupg_user }}/.gnupg'
+    gnupg_keysdir: '{{ gnupg_repo }}/{{ gnupg_user }}/keys'
+
+  tasks:
+
+    - set_fact: { email: '{{ gnupg_user }}@{{ inventory_hostname }}' }
+      name: Define email
+      tags: always
+
+    - set_fact: { password: '{{ gnupg_user }}/{{ email }} create=true directory={{ password_store_dir }}' }
+      name: Define passwordstore invocation
+
+    - set_fact:
+        passphrase: |-
+          {{ lookup('passwordstore', password) }}
+      name: Generate new password
+
+    - meta: noop
+      vars:
+        macros:
+          - &pass
+            environment:
+              PASSWORD_STORE_GIT: '{{ password_store }}'
+              PASSWORD_STORE_DIR: '{{ password_store_dir }}'
+              # now done via git_config after clone
+              # GIT_SSH_COMMAND: 'ssh -i {{ git_ssh_key_file }}'
+            delegate_to: localhost
+
+    - command: pass git rev-parse @
+      <<: *pass
+      <<: *ro
+      register: head
+      name: Get head
+
+    - command: pass git rev-parse @{u}
+      <<: *pass
+      <<: *ro
+      register: upstream
+      name: Get upstream
+
+    - command: pass git push
+      <<: *pass
+      when: head.stdout != upstream.stdout
+      name: Push new password
+
+    - file:
+        path: '{{ item }}'
+        state: directory
+        mode: 0700
+      loop: [ '{{ gnupg_homedir }}', '{{ gnupg_keysdir }}' ]
+      <<: *loo
+      name: Create GPG dirs
+
+    - &check
+      command:
+      args:
+        argv:
+          - gpg2
+          - --homedir
+          - '{{ gnupg_homedir }}'
+          - --list-secret-keys
+          - '<{{ email }}>'
+      delegate_to: localhost
+      register: gpg
+      failed_when: gpg.rc > 2
+      <<: *ro
+      name: Check GPG key
+
+    - copy:
+        content: |
+          Key-Type: default
+          Subkey-Type: default
+          Name-Real: {{ gnupg_user }}
+          Name-Comment: for {{ inventory_hostname }}
+          Name-Email: {{ email }}
+          Expire-Date: 0
+          Passphrase: {{ passphrase }}
+          %commit
+          %echo done
+        dest: &script '{{ workdir }}/{{ inventory_hostname }}.script'
+      no_log: True
+      delegate_to: localhost
+      when: gpg.rc == 2
+      name: Generate gpg script
+
+    - command:
+      args:
+        argv:
+          - gpg2
+          - --homedir
+          - '{{ gnupg_homedir }}'
+          - --batch
+          - --generate-key
+          - *script
+      delegate_to: localhost
+      when: gpg.rc == 2
+      name: Generate GPG key
+
+    - *check # listing new keys changes trustdb
+
+    - file:
+        path: *script
+        state: absent
+      delegate_to: localhost
+      name: Delete gpg script
+
+    - command:
+      args:
+        argv:
+          - gpg2
+          - --homedir
+          - '{{ gnupg_homedir }}'
+          - --armor
+          - --export
+          - --output
+          - &src_key_asc '{{ gnupg_keysdir }}/{{ email }}.asc'
+          - '{{ email }}'
+        creates: *src_key_asc
+      delegate_to: localhost
+      name: Export pub key
+
+    - set_fact:
+        src_key_priv: &src_key_priv '{{ gnupg_keysdir }}/{{ email }}.priv'
+        key_priv_pass: '{{ gnupg_user }}/{{ email }} directory={{ password_store_dir }}'
+      name: Define src_key_priv and passwordstore invocation
+
+    - apt: { name:  '{{ pkgs }}' }
+      vars: { pkgs: [ python-pexpect ] }
+      become: True
+      <<: *loo
+      name: install {{ pkgs | join(' ')}}
+      
+    - expect:
+        command: gpg2 --homedir {{ gnupg_homedir }} --export-secret-keys --armor --output {{ src_key_priv }}
+        responses:
+          (?i)Passphrase: |
+            {{ lookup('passwordstore', key_priv_pass) }}
+        creates: *src_key_priv
+      no_log: True
+      <<: *lo
+      name: Export priv key
+
+    - <<: *ro
+      command: git -C {{ gnupg_repo }} status --porcelain
+      delegate_to: localhost
+      register: status
+      name: Get status
+
+    - command: git -C {{ gnupg_repo }} {{ item }}
+      delegate_to: localhost
+      when: status.stdout_lines|length|int
+      with_items:
+        - add .
+        - commit -m 'Adds {{ email }} via ansible'
+      name: Add GPG key
+
+    - <<: *ro
+      command: git -C {{ gnupg_repo }} rev-parse {{ item }}
+      delegate_to: localhost
+      register: head_upstream
+      with_items: [ '@', '@{u}' ]
+      name: Get head and upstream
+
+    - command: git -C {{ gnupg_repo }} push
+      environment:
+        # GIT_SSH_COMMAND: 'ssh -i {{ git_ssh_key_file }}'
+      delegate_to: localhost
+      when: head_upstream.results[0].stdout != head_upstream.results[1].stdout
+      name: Push new key
+
+    - meta: noop
+      vars:
+        macros:
+          - &dst_key_asc /etc/duplicity/{{ email }}.asc
+          - &dst_key_priv /etc/duplicity/{{ email }}.priv
+
+    - set_fact:
+        keys:
+          - src: *src_key_asc
+            dest: *dst_key_asc
+            mode: preserve
+          - src: *src_key_priv
+            dest: *dst_key_priv
+            mode: '0600'
+
+    - copy:
+        src: '{{ item.src }}'
+        dest: '{{ item.dest }}'
+        mode: '{{ item.mode }}'
+      loop: '{{ keys }}'
+      loop_control: { label: '{{ item.dest.split("/")[-1] }}' }
+      become: True
+      name: Copy pub and priv key
+
+    - meta: noop
+      vars:
+        macros:
+          - &check_key
+            command: gpg2 '{{ cmd }}' '<{{ email }}>'
+            become: True
+            register: gpg
+            failed_when: gpg.rc > 2
+            <<: *ro
+            name: Check GPG '{{ typ }}' key imported
+          - &import_key
+            command:
+            args: { argv: [ gpg2, --import, '{{ key }}' ] }
+            become: True
+            when: gpg.rc == 2
+            name: Import GPG {{ key }}
+          - &trust_key
+            command:
+            args:
+              argv: [ gpg2, --no-tty, --command-fd, 0, --edit-key, '<{{ email }}>' ]
+              stdin: "trust\n5\ny"
+            become: True
+            when: gpg.rc == 2
+            name: Trust GPG key
+
+    - <<: *check_key
+      vars: { cmd: --list-keys, typ: pub }
+
+    - <<: *import_key
+      vars: { key: *dst_key_asc }
+
+    - <<: *trust_key
+
+    - <<: *check_key
+      vars: { cmd: --list-secret-keys, typ: priv }
+
+    - <<: *import_key
+      vars: { key: *dst_key_priv }
+
+    - meta: end_play
+      tags: always
