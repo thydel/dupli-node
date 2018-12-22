@@ -1,5 +1,8 @@
 ---
 
+private_repos_file: private-repos.yml
+keys_file: keys.yml
+
 app_name: duplicity
 app_base: /space/{{ app_name }}
 workdir: ext
@@ -8,3 +11,4 @@ ssh_store_dir: '{{ ssh_store }}/{{ app_name }}'
 data_nodes: '{{ workdir }}/data-nodes'
 password_store: '{{ workdir }}/password-store'
 password_store_dir: '{{ playbook_dir }}/{{ password_store }}/password-store' # passwordstore lookup needs full path
+gpg_store: '{{ workdir }}/gpg-store'
