@@ -43,10 +43,16 @@ install-backupninja.yml -l node
 install-duplicity.yml -l node
 ```
 
-# Generate and install ssh keys
+# Generate and install SSH keys
 
 ```
 ssh-keygen.yml -l node
+```
+
+# Generate and install GPG keys
+
+```
+gpg.yml -l node
 ```
 
 # Generate dups
