@@ -10,4 +10,4 @@
   tasks:
 
     - { make: { chdir: ., file: dups.mk, target: main }, delegate_to: localhost, run_once: True }
-    - { copy: { src: 'tmp/{{ inventory_hostname }}/', dest: '/etc/backup.d' }, become: True }
+    - { copy: { src: 'tmp/{{ inventory_hostname }}/', dest: '/etc/backup.d', mode: 0600 }, become: True }
