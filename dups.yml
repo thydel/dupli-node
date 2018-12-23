@@ -1,0 +1,13 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- import_playbook: asserts.yml
+
+- name: configure backpninja for nodes
+  hosts: backupninja
+  gather_facts: False
+
+  tasks:
+
+    - { make: { chdir: ., file: dups.mk, target: main }, delegate_to: localhost, run_once: True }
+    - { copy: { src: 'tmp/{{ inventory_hostname }}/', dest: '/etc/backup.d' }, become: True }
