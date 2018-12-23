@@ -18,7 +18,9 @@ $(dirs) = jsonnet -Se "$(jsonnet)" | tee /dev/stderr | dash && touch $@
 $(dirs): $(self); $($@)
 dirs: $(dirs)
 
+repo != git config remote.origin.url
+
 stone := $(dir)/.stone
-$(stone): dups.jsonnet dups.libsonnet $(self); jsonnet -m $(@D) -S $< && touch $@
+$(stone): dups.jsonnet dups.libsonnet $(self); jsonnet -V repo=$(repo) -m $(@D) -S $< && touch $@
 
 main: dirs $(stone)

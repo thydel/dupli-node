@@ -1,5 +1,5 @@
 #!/usr/bin/env jsonnet
-# to be invokes ad `$0 -S -m tmp`
+# to be invokes as `$0 -V repo=$(git config remote.origin.url) -S -m ${dir:-tmp}`
 
 local conf = import 'dups.libsonnet';
 local nodes = import 'ext/data-nodes/oxa-duplicity.jsonnet';
@@ -15,6 +15,7 @@ local dups = {
 };
 
 local mode = '# -*- Mode: conf; -*-\n';
+local info = '# Generated from ' + std.extVar('repo') + '\n\n';
 
 {
   local args = {
@@ -25,7 +26,7 @@ local mode = '# -*- Mode: conf; -*-\n';
     backup_fqdn: nodes.fqdn[self.backup]
   },
   [ node + '/' + dups[vol].seq + '.' + vol + '.dup' ]:
-    mode + std.manifestIni((dups[vol] + args).default) for vol in vols for node in nodes.dups.nodes
+    mode + info + std.manifestIni((dups[vol] + args).default) for vol in vols for node in nodes.dups.nodes
 }
 
 # Local Variables:
