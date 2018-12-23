@@ -34,6 +34,7 @@ local sep = '+';
     sections: {
       gpg: {
         encryptkey: '<dupliciy@' + $.node + '>',
+	password: 'dummy',	# required by backupninja but useless for duplicity
       },
       dest: {
         sshoptions: '-oIdentityFile=/etc/duplicity/' + $.node + '-duplicity',
