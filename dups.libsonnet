@@ -10,8 +10,9 @@ local sep = '+';
 
 {
   when:: 'everyday at 00:20',
-  backup:: 'backup2',
-  node:: 'localhost',
+  backup:: error 'No default backup node',
+  backup_fqdn: error 'No default backup_fqnd node',
+  node:: error 'No default node',
   vol:: error 'No default vol',
   base:: '/space/duplicity',
   tmpdir:: self.base + '/tmp',
@@ -32,11 +33,11 @@ local sep = '+';
     },
     sections: {
       gpg: {
-        encryptkey: 't.delamare@epiconcept.fr',
+        encryptkey: '<dupliciy@' + $.node + '>',
       },
       dest: {
         sshoptions: '-oIdentityFile=/etc/duplicity/' + $.node + '-duplicity',
-        desthost: 'backup2.admin2.oxa.tld',
+        desthost: $.backup_fqdn,
         destuser: 'duplicity',
         destdir: 'store/' + $.node + '/' + $.vol,
       } + $.dests[$.vol],
