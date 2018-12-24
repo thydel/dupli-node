@@ -33,7 +33,7 @@ local sep = '+';
     },
     sections: {
       gpg: {
-        encryptkey: '<dupliciy@' + $.node + '>',
+        encryptkey: "'" + '<duplicity@' + $.node + '>' + "'",
 	password: 'dummy',	# required by backupninja but useless for duplicity
       },
       dest: {
