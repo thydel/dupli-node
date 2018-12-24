@@ -46,19 +46,25 @@ install-duplicity.yml -l node
 # Generate and install SSH keys
 
 ```
-ssh-keygen.yml -l node
+ssh-keygen.yml -l node # -e no_assert=1
 ```
 
 # Generate and install GPG keys
 
 ```
-gpg.yml -l node
+gpg.yml -l node # -e no_assert=1
 ```
 
-# Generate dups
+# Generate and intrall dups
 
 Uses `data_nodes_repo`
 
 ```
-dups.mk main
+dups.yml -l node # -e no_assert=1
+```
+
+# Reset known_hosts entry
+
+```
+remote-reset-known-hosts-entry.yml -l node -e no_assert=1
 ```
