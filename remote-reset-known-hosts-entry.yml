@@ -1,0 +1,86 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- import_playbook: asserts.yml
+
+- name: Remote reset known hosts entry
+  hosts: duplicity
+  gather_facts: True
+
+  vars:
+
+    remote_node: '{{ backup_fqdn }}'
+
+  tasks:
+      
+    - name: Ensure dig available
+      apt: { name: dnsutils }
+      become: True
+
+    - name: get IP of remote node
+      register: dig
+      check_mode: False
+      changed_when: False
+      command: dig +short +ndots=2 +search {{ remote_node }}
+
+    - assert: { that: dig.stdout != '' }
+
+    - meta: noop
+      vars:
+        macros:
+          - &ro
+            changed_when: False
+            check_mode: False
+
+    - command: id -un
+      register: id
+      become: True
+      <<: *ro
+      name: Get become user name
+
+    - getent: { database: passwd, key: '{{ id.stdout }}' }
+      name: Get become user passwd entry
+
+    - set_fact: { home: '{{ getent_passwd[id.stdout][4] }}' }
+      name: Get become user home
+
+    - set_fact: { known_hosts: &known_hosts '{{ home }}/.ssh/known_hosts' }
+      name: Set known_hosts path
+
+    - stat: { path: *known_hosts }
+      register: stat
+      name: stat {{ known_hosts }}
+      become: True
+
+    - name: Create {{ known_hosts }} if needed
+      file: { path: *known_hosts, state: touch }
+      become: True
+      when: not stat.stat.exists
+      
+    - name: Remove previous host name key from my known_hosts
+      command: ssh-keygen -R {{ remote_node }}
+      become: True
+
+    - name: Remove previous host ip key from my known_hosts
+      command: ssh-keygen -R {{ item }}
+      with_items: dig.stdout_lines
+      become: True
+
+    - { set_fact: { key_type: rsa,dsa,ecdsa }, when: ansible_lsb.codename != 'squeeze' }
+    - { set_fact: { key_type: rsa,dsa },       when: ansible_lsb.codename == 'squeeze' }
+        
+    - name: Get hashed entry for new host keys
+      command: ssh-keyscan -t {{ key_type }} -H {{ remote_node }}
+      register: ssh_keyscan
+      become: True
+      <<: *ro
+
+    - name: And add hashed entry for new host keys
+      lineinfile:
+        path: *known_hosts
+        line: '{{ item }}'
+        state: present
+      loop: '{{ ssh_keyscan.stdout_lines }}'
+      become: True
+
+    - meta: end_play
