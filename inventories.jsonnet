@@ -1,3 +1,6 @@
+#!/usr/bin/env jsonnet
+# to be invokes as `$0 -S -m ${dir:-inventory}`
+
 local sets = {
   oxa: import 'ext/data-nodes/oxa-duplicity.jsonnet',
   lxc: import 'nodes-lxc.jsonnet',
@@ -51,7 +54,20 @@ local inventories = {
   for set in std.objectFields(hosts)
 };
 
-{ [set + '_out.yml']: std.manifestYamlDoc(inventories[set]) for set in std.objectFields(inventories) }
+{ [set + '_out.yml']: std.manifestYamlDoc(inventories[set]) for set in std.objectFields(inventories) } + {
+  'dups-oxa_out.yml': std.manifestYamlDoc(inventory),
+  local inventory = {
+    all: {
+      local dups = sets.oxa.dups,
+      hosts: {
+        [node]: {
+          backup_node: dups.backup[node]
+        } for node in dups.nodes
+      }
+    }
+  }
+}
+
 
 # Local Variables:
 # indent-tabs-mode: nil
