@@ -61,7 +61,8 @@ local inventories = {
       local dups = sets.oxa.dups,
       hosts: {
         [node]: {
-          backup_node: dups.backup[node]
+          backup_node:: dups.backup[node],
+          backup_fqdn: sets.oxa.fqdn[self.backup_node]
         } for node in dups.nodes
       }
     }
