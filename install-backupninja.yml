@@ -31,3 +31,28 @@
           command: set
           path: /files/etc/backupninja.conf/.anon/{{ item.option }}
           value: '{{ item.value }}'
+
+      - { meta: noop, name: top }
+
+      - vars:
+          base: &base /usr/share/backupninja
+          file: dup
+          apath: &path '{{ base }}/{{ file}}'
+          patch: &patch '{{ apath }}.patch'
+        block:
+        - name: Copy patch file
+          copy:
+            src: install-backupninja-dup.patch
+            dest: '{{ patch }}'
+
+        - stat: { path: *path }
+          register: path
+        - stat: { path: *patch }
+          register: patch
+
+        - name: Patch duplicity backend to allow password file inclusion
+          when: path.stat.exists and patch.stat.exists
+          patch:
+            src: *patch
+            basedir: *base
+            remote_src: True
