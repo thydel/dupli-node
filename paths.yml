@@ -5,6 +5,7 @@ keys_file: keys.yml
 
 app_name: duplicity
 app_base: /space/{{ app_name }}
+app_etc: '{{ app_base }}/etc'
 workdir: ext
 ssh_store: '{{ workdir }}/ssh-store'
 ssh_store_dir: '{{ ssh_store }}/{{ app_name }}'
