@@ -31,6 +31,8 @@
 
   tasks:
 
+    - debug: { msg: run with "-e use_symmetric=1" to copy passphrase }
+
     - set_fact: { email: '{{ gnupg_user }}@{{ inventory_hostname }}' }
       name: Define email
       tags: always
@@ -42,6 +44,14 @@
         passphrase: |-
           {{ lookup('passwordstore', password) }}
       name: Generate new password
+
+    - copy:
+        content: '{{ passphrase }}'
+        dest: '{{ app_etc }}/{{ inventory_hostname }}'
+        mode: 0600
+      become: True
+      when: use_symmetric is defined
+      name: Copy passphrase
 
     - meta: noop
       vars:
