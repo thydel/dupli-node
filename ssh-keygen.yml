@@ -11,7 +11,6 @@
 
   vars:
 
-    app_etc: '{{ app_base }}/etc'
     ssh_key_name: &ssh_key_name '{{ inventory_hostname }}-{{ app_name }}'
     ssh_key_path: &ssh_key_path '{{ app_etc }}/{{ ssh_key_name }}'
     ssh_pub_key_path: &ssh_pub_key_path '{{ ssh_key_path }}.pub'
@@ -121,13 +120,19 @@
       - command: git ls-files --exclude-standard --modified
         <<: *ro
         <<: *repos
+        register: modified
+        name: Get modified changes of {{ repos }}
+
+      - command: git diff --name-only --cached
+        <<: *ro
+        <<: *repos
         register: uncommited
         name: Get uncommited changes of {{ repos }}
 
       - command: git ci -am '{{ comment }}'
         vars: { repos: *ssh_store, comment: 'Adds {{ ssh_key_name }} via ansible' }
         args: { chdir: '{{ repos }}' }
-        when: uncommited.stdout_lines | length
+        when: modified.stdout_lines | length or uncommited.stdout_lines | length
         name: Commit {{ ssh_key_name }} on {{ repos }}
 
       - command: git rev-parse @
