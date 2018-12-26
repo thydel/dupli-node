@@ -15,12 +15,20 @@ local sep = '+';
   node:: error 'No default node',
   vol:: error 'No default vol',
   base:: '/space/duplicity',
+
+  etcs:: {
+    new: $.base + '/etc',
+    old: '/etc/duplicity' },
+  etcdir:: self.etcs[self.etc],
+  etc:: 'new',
+
   tmpdir:: self.base + '/tmp',
   archive:: self.base + '/archive',
   volsize:: 500,
   name:: self.backup + sep + self.node + sep + self.vol,
   options:: archive + self.archive + name + self.name + volsize + self.volsize + if self.vol == 'root' then onefs else '',
   groups:: [],
+  symmetric:: false,
 
   default:: {
 
@@ -32,16 +40,24 @@ local sep = '+';
       options: $.options,
     },
     sections: {
+      local password_file = $.etcdir + '/' + $.node,
+      local encryptkey = "'" + '<duplicity@' + $.node + '>' + "'",
       gpg: {
-	sign: 'no',
-        encryptkey: "'" + '<duplicity@' + $.node + '>' + "'",
-	password: 'dummy',	# required by backupninja but useless for duplicity
+        sign: 'no',
+        password: 'dummy',      # required by backupninja but useless for duplicity
+      } + if $.symmetric then {
+        password_file: password_file,
+        encryptkey_hidden: encryptkey
+      } else {
+        encryptkey: encryptkey,
+        password_file: password_file
       },
       dest: {
-        sshoptions: '-oIdentityFile=/etc/duplicity/' + $.node + '-duplicity',
-        desthost: $.backup_fqdn,
-        destuser: 'duplicity',
-        destdir: 'store/' + $.node + '/' + $.vol,
+        sshoptions: '-oIdentityFile=' + $.etcdir + '/' + $.node + '-duplicity',
+        desthost:: $.backup_fqdn,
+        destuser:: 'duplicity',
+        destdir:: 'store/' + $.node + '/' + $.vol,
+        desturl: 'sftp://' + self.destuser + '@' + self.desthost + '/' + self.destdir,
       } + $.dests[$.vol],
       source: $.sources[$.vol],
     },
@@ -83,3 +99,7 @@ local sep = '+';
     },
   },
 }
+
+# Local Variables:
+# indent-tabs-mode: nil
+# End:

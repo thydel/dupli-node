@@ -9,5 +9,15 @@
 
   tasks:
 
-    - { make: { chdir: ., file: dups.mk, target: main }, delegate_to: localhost, run_once: True }
-    - { copy: { src: 'tmp/{{ inventory_hostname }}/', dest: '/etc/backup.d', mode: 0600 }, become: True }
+    - delegate_to: localhost
+      block:
+        - { make: { chdir: ., file: dups.mk, target: main }, run_once: True }
+        - { find: { path: 'tmp/{{ inventory_hostname }}/', patterns: '*.dup' }, register: find }
+    - copy:
+        src: '{{ item.path }}'
+        dest: '/etc/backup.d'
+        mode: 0600
+      become: True
+      loop: '{{ find.files }}'
+      loop_control: { label: '{{ item.path }}' }
+

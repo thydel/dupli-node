@@ -23,7 +23,9 @@ local info = '# Generated from ' + std.extVar('repo') + '\n\n';
     local dups = nodes.dups,
     groups: dups.groups[node],
     backup: dups.backup[node],
-    backup_fqdn: nodes.fqdn[self.backup]
+    backup_fqdn: nodes.fqdn[self.backup],
+    symmetric: dups.symmetric[node],
+    etc: dups.etc[node],
   },
   [ node + '/' + dups[vol].seq + '.' + vol + '.dup' ]:
     mode + info + std.manifestIni((dups[vol] + args).default) for vol in vols for node in nodes.dups.nodes
