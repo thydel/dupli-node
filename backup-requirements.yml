@@ -1,0 +1,5 @@
+---
+
+- src: willshersystems.sshd
+  name: sshd
+  version: master

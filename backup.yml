@@ -3,24 +3,33 @@
 
 - name: Prepare backup node
   hosts: backups
-  gather_facts: False
+  gather_facts: True
 
-  vars:
-    aname: duplicity
-    adir: /space
+  vars_files: paths.yml
 
   tasks:
 
     - user:
-        name: &name '{{ aname }}'
+        name: &name '{{ app_name }}'
         comment: Duplicity User
       become: True
-      name: Creare {{ aname }} user
+      name: Create {{ app_name }} user
 
     - file:
-        path: '{{ adir }}/{{ aname }}'
+        path: '{{ app_base }}'
         state: directory
         owner: *name
         group: *name
       become: True
-      name: Create {{ aname }} store dir
+      name: Create {{ app_name }} store dir
+
+    - include_role: { name: sshd }
+      vars:
+        allow_users: [ root, '{{ users.admins }}', *name ]
+        sshd:
+          AllowUsers: '{{ allow_users | flatten }}'
+          Subsystem: sftp internal-sftp
+          Match:
+            - Condition: User={{ app_name }}
+              ChrootDirectory: '{{ app_sftp_chroot }}'
+        ansible_become: True
