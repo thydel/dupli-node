@@ -62,13 +62,16 @@ local inventories = {
       hosts: {
         [node]: {
           backup_node:: dups.backup[node],
-          backup_fqdn: sets.oxa.fqdn[self.backup_node]
+          backup_fqdn: sets.oxa.fqdn[self.backup_node],
         } for node in dups.nodes
+      } + {
+        [node] : {
+          users: sets.oxa.users,
+        } for node in sets.oxa.sets.backups
       }
     }
   }
 }
-
 
 # Local Variables:
 # indent-tabs-mode: nil
