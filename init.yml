@@ -6,7 +6,7 @@
 - hosts: localhost
   gather_facts: False
 
-  vars_files: paths.yml
+  vars_files: [ paths.yml, private-repos.yml ]
 
   vars:
     git_config_items: [ user.email, user.signingkey, format.pretty ]
