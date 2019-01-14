@@ -33,7 +33,7 @@ inventories.mk main
 # Install backupninja
 
 ```
-install-backupninja.mk # for roles requirements
+install-backupninja.mk main # for roles requirements
 install-backupninja.yml -l node
 ```
 
