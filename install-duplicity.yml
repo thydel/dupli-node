@@ -2,7 +2,7 @@
 ---
 
 - name: Install duplicity
-  hosts: duplicity
+  hosts: g_duplicity
 
   vars:
 
@@ -23,7 +23,7 @@
 
   tasks:
 
-    - delegate_to: local
+    - delegate_to: localhost
       block:
 
       - name: Create tmp dir

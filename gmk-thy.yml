@@ -1,0 +1,74 @@
+---
+
+- type: self
+  name: dupli-node
+  env: thydel
+
+- macros:
+    - &pretty
+      format.pretty: tformat:%C(auto,yellow)%h%C(auto,magenta)% G? %C(auto,blue)%>(22,trunc)%ad %C(auto,green)%<(8,trunc)%aN%C(auto,reset)%s%C(auto,magenta) %GK%C(auto,red)% %d %C(auto,reset)
+      log.date: format:%Y-%m-%d %H:%M:%S
+    - &signingkey
+      user.signingkey: Thierry Delamare (thy) <t.delamare@laposte.net>
+    - &thy
+      <<: *pretty
+      <<: *signingkey
+
+- name: min
+  configs:
+    <<: *pretty
+
+- name: thydel
+  key: &thydel t.delamare@laposte.net
+  configs:
+    <<: *thy
+    user.email: *thydel
+
+- name: thyepi
+  key: &thyepi t.delamare@epiconcept.fr
+  configs:
+    <<: *thy
+    user.email: *thyepi
+
+- { alias: thyepi, email: *thyepi, full: &tde Thierry Delamare }
+- { alias: thydel, email: *thydel, full: *tde }
+- { alias: evens, email: e.solignac@epiconcept.fr, full: Evens Solignac }
+- { alias: cedric, email: c.girard@epiconcept.fr, full: Cédric Girard }
+
+- { hub: thydel, token: github/tokens/thydel/hub }
+- { hub: thyepi, token: github/tokens/thyepi/hub }
+
+- git: git@github.com:Epiconcept-Paris/infra-data-ips.git
+  name: data-ips
+  version: tde
+  conf: thyepi
+
+- git: git@github.com:thydel/infra-ips.git
+  name: ips
+  conf: thydel
+  links: data-ips data-misc
+
+- git: git@github.com:Epiconcept-Paris/infra-data-inventories.git
+  name: inventories
+  version: tde
+  conf: thyepi
+
+- git: git@github.com:thydel/ansible-cfg.git
+  name: ansible-cfg
+  conf: thydel
+
+- git: git@github.com:Epiconcept-Paris/infra-data-misc.git
+  name: data-misc
+  conf: thyepi
+
+- git: git@github.com:Epiconcept-Paris/infra-password-store.git
+  name: password-store
+  conf: thyepi
+
+- git: git@github.com:Epiconcept-Paris/infra-gpg-store.git
+  name: gpg-store
+  conf: thyepi
+
+- git: git@github.com:Epiconcept-Paris/infra-data-nodes.git
+  name: data-nodes
+  conf: thyepi

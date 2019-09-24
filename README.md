@@ -1,46 +1,53 @@
-# Generate ansible config
+# Fetch
 
 ```
-ansible-cfg.mk main
-ansible-cfg.yml
+git clone git@github.com:thydel/dupli-node.git
 ```
 
-# Generate minimal inventory
+# Use a gmk file
 
 ```
-local.mk main
+gmk self/config
+gmk mailmap
+gmk conf
+gmk exclude
+gmk mailmaps
 ```
 
-# Define private variables
-
-- define `data_nodes_repo` in `private-repos.yml`
-- define `default_key` in `keys.yml`
-
-# Get private stuff
+# Add and use a Makefile to generate inventory
 
 ```
-init.yml
+make -f inventory.mk main
 ```
 
-# Generate private inventory
-
-Uses `data_nodes_repo`
+# Choose and configure ansible
 
 ```
-inventories.mk main
+make -C ext/ansible-cfg install
+ansible-cfg median
+source <(use-ansible)
+ansible-cfg exclude
+```
+
+# Use ansible with inventory
+
+```
+source <(use-ansible)
+ansible 'n_admin2:!g_poweredoff' -om ping
 ```
 
 # Install backupninja
 
 ```
 install-backupninja.mk main # for roles requirements
-install-backupninja.yml -l node
+source <(use-ansible 2.8)
+install-backupninja.yml -l $node
 ```
 
 # Install duplicity
 
 ```
-install-duplicity.yml -l node
+install-duplicity.yml -l $node
 ```
 
 # Generate and install SSH keys
