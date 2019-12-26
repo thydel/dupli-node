@@ -40,7 +40,7 @@
 
 - git: git@github.com:Epiconcept-Paris/infra-data-ips.git
   name: data-ips
-  version: tde
+  version: master
   conf: thyepi
 
 - git: git@github.com:thydel/infra-ips.git
@@ -50,7 +50,7 @@
 
 - git: git@github.com:Epiconcept-Paris/infra-data-inventories.git
   name: inventories
-  version: tde
+  version: master
   conf: thyepi
 
 - git: git@github.com:thydel/ansible-cfg.git
