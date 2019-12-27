@@ -13,7 +13,7 @@
         delegate_to: localhost
         run_once: True
 
-- name: &version_check Assertions for ansible versions and private files
+- name: &version_check Assertions for ansible versions
   hosts: all
   gather_facts: False
   tags: always
@@ -41,30 +41,6 @@
           running_ansible_version: '{{ ansible_version.major ~ "." ~ ansible_version.minor }}'
           local_min_ansible_version: '{{ min_ansible_version | default(default_min_ansible_version) }}'
         name: Assert running_ansible_version ({{ running_ansible_version }}) >= {{ local_min_ansible_version }}
-
-      - stat: { path: '{{ file }}' }
-        vars: &prf { file: '{{ private_repos_file }}' }
-        register: st
-        name: Stat {{ file }}
-      - assert:
-          that: st.stat.exists
-          fail_msg: |
-            Create a {{ file }} file to define
-            - data_nodes_repo
-        vars: *prf
-        name: Assert {{ file }}
-
-      - stat: { path: '{{ file }}' }
-        vars: &kf { file: '{{ keys_file }}' }
-        register: st
-        name: Stat {{ file }}
-      - assert:
-          that: st.stat.exists
-          fail_msg: |
-            Create a {{ file }} file to define
-            - default_key
-        vars: *kf
-        name: Assert {{ file }}
 
 - name: &agent_check Assertions for SSH and GPG agents
   hosts: all
