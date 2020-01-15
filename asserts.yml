@@ -37,7 +37,7 @@
           that: running_ansible_version is version(local_min_ansible_version, '>=')
           fail_msg: min ansible version is {{ local_min_ansible_version }}, ansible version is {{ running_ansible_version }}
         vars:
-          default_min_ansible_version: 2.7
+          default_min_ansible_version: 2.9
           running_ansible_version: '{{ ansible_version.major ~ "." ~ ansible_version.minor }}'
           local_min_ansible_version: '{{ min_ansible_version | default(default_min_ansible_version) }}'
         name: Assert running_ansible_version ({{ running_ansible_version }}) >= {{ local_min_ansible_version }}
