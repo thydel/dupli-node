@@ -230,8 +230,8 @@
     - meta: noop
       vars:
         macros:
-          - &dst_key_asc /etc/duplicity/{{ email }}.asc
-          - &dst_key_priv /etc/duplicity/{{ email }}.priv
+          - &dst_key_asc '{{ app_etc }}/{{ email }}.asc'
+          - &dst_key_priv '{{ app_etc }}/{{ email }}.priv'
 
     - set_fact:
         keys:
