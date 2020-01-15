@@ -67,7 +67,6 @@
     - command: pass git ls-files -o --exclude-standard
       <<: *pass
       <<: *ro
-      delegate_to: localhost
       register: untracked
       name: Get untracked files list
 
@@ -79,7 +78,6 @@
 
     - command: pass git {{ item }}
       <<: *pass
-      delegate_to: localhost
       when: untracked.stdout_lines|length|int
       with_items:
         - add .
