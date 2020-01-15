@@ -36,6 +36,7 @@
       - assert:
           that: running_ansible_version is version(local_min_ansible_version, '>=')
           fail_msg: min ansible version is {{ local_min_ansible_version }}, ansible version is {{ running_ansible_version }}
+          quiet: True
         vars:
           default_min_ansible_version: 2.9
           running_ansible_version: '{{ ansible_version.major ~ "." ~ ansible_version.minor }}'
@@ -63,6 +64,7 @@
       - assert:
           that: ssh_add.rc == 0
           fail_msg: Empty ssh agent
+          quiet: True
         name: Assert we have cached ssh keys
 
       - git_config:
@@ -74,6 +76,7 @@
       - assert:
           that: git_config.config_value != ''
           fail_msg: configure git user.email
+          quiet: True
       - <<: *ro
         name: Get keygrip of GPG key using email ID
         command: gpg2 --fingerprint --with-keygrip '<{{ git_config.config_value }}>'
@@ -81,6 +84,7 @@
       - assert:
           that: gpg_keygrip.rc == 0
           fail_msg: '{{ gpg_keygrip.stderr }}'
+          quiet: True
         name: Assert keygrip
       - <<: *ro
         name: Get gpg-agent cache status for GPG passphrase 
@@ -91,3 +95,4 @@
       - assert:
           that: gpg_connect_agent.stdout_lines[0].split()[6]|int == 1
           fail_msg: passphrase for {{ git_config.config_value }} uncached
+          quiet: True
