@@ -20,6 +20,13 @@ gmk mailmaps
 make -f inventory.mk main
 ```
 
+**Warning**, this is obsolet. Use an installed inventory
+
+```
+ln -s /usr/local/etc/epi/inventory
+```
+
+
 # Choose and configure ansible
 
 ```
