@@ -17,7 +17,7 @@
 
 - import_playbook: asserts.yml
 
-- hosts: duplicity
+- hosts: g_duplicity
   gather_facts: False
 
   vars_files: paths.yml
