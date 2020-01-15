@@ -191,7 +191,8 @@
       name: install {{ pkgs | join(' ')}}
       
     - expect:
-        command: gpg2 --homedir {{ gnupg_homedir }} --export-secret-keys --armor --output {{ src_key_priv }}
+        command: >-
+          gpg2 --homedir {{ gnupg_homedir }} --export-secret-key --armor --output {{ src_key_priv }} {{ email }}
         responses:
           (?i)Passphrase: |
             {{ lookup('passwordstore', key_priv_pass) }}
