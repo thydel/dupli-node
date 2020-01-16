@@ -242,6 +242,13 @@
             dest: *dst_key_priv
             mode: '0600'
 
+    - file:
+        path: '{{ app_etc }}'
+        state: directory
+        mode: 0700
+      become: True
+      name: Create duplicity etc
+
     - copy:
         src: '{{ item.src }}'
         dest: '{{ item.dest }}'
