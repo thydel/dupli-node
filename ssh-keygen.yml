@@ -4,7 +4,7 @@
 - import_playbook: asserts.yml
 
 - name: Generate, commit and install ssh keys for a duplicity node
-  hosts: duplicity
+  hosts: g_duplicity
   gather_facts: False
 
   vars_files: paths.yml
