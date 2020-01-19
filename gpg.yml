@@ -270,7 +270,7 @@
             name: Check GPG '{{ typ }}' key imported
           - &import_key
             command:
-            args: { argv: [ gpg2, --import, '{{ key }}' ] }
+            args: { argv: [ gpg2, --batch, --import, '{{ key }}' ] }
             become: True
             when: gpg.rc == 2
             name: Import GPG {{ key }}
