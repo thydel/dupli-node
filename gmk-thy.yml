@@ -65,6 +65,10 @@
   name: password-store
   conf: thyepi
 
+- git: git@github.com:Epiconcept-Paris/infra-ssh-store.git
+  name: ssh-store
+  conf: thyepi
+
 - git: git@github.com:Epiconcept-Paris/infra-gpg-store.git
   name: gpg-store
   conf: thyepi
