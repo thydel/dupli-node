@@ -49,7 +49,7 @@
 
     - { meta: noop, name: top }
 
-    - delegate_to: local
+    - delegate_to: localhost
       block:
       - lineinfile:
           path: '{{ ssh_store_dir }}/.gitignore'
@@ -94,10 +94,10 @@
       - command:
         args:
           argv: [ ssh-keygen, -p, -N, '{{ passphrase }}', -f, *local_cpt_ssh_key_path ]
-        delegate_to: local
+        delegate_to: localhost
         name: Set password to copy of private ssh key
 
-    - delegate_to: local
+    - delegate_to: localhost
       block:
 
       - meta: noop
@@ -152,13 +152,30 @@
         when: head.stdout != upstream.stdout
         name: Push {{ repos }}
 
+    - command:
+        args: [ tee, -a, '{{ home }}/.ssh/authorized_keys' ]
+        stdin: '{{ lookup(file, local_ssh_pub_key_path) }}'
+      vars:
+        home: >-
+          {{ lookup('env','HOME') }}
+        file: file
+      delegate_to: '{{ item }}'
+      become: True
+      become_user: *app_name
+      loop: '{{ groups.g_backups }}'
+      name: Install key to backup2 store node
+      tags: tag
+
+    - { meta: end_play, tags: always }
+
     - authorized_key:
         user: *app_name
         key: '{{ lookup(file, local_ssh_pub_key_path) }}'
       vars: { file: file }
       delegate_to: '{{ item }}'
       become: True
-      loop: '{{ groups.backups }}'
+      loop: '{{ groups.g_backups }}'
       name: Install key to backup store node
+      tags: tag
 
     - { meta: end_play, tags: always }
