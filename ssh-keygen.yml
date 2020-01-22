@@ -152,6 +152,19 @@
         when: head.stdout != upstream.stdout
         name: Push {{ repos }}
 
+    - authorized_key:
+        user: *app_name
+        key: '{{ lookup(file, local_ssh_pub_key_path) }}'
+      vars: { file: file }
+      delegate_to: '{{ host }}'
+      become: True
+      loop: '{{ groups.g_backups }}'
+      loop_control:
+        loop_var: host
+      name: Install key to backup store nodes
+
+    - { meta: end_play, tags: always }
+
     - command:
         args: [ tee, -a, '{{ home }}/.ssh/authorized_keys' ]
         stdin: '{{ lookup(file, local_ssh_pub_key_path) }}'
@@ -163,19 +176,6 @@
       become: True
       become_user: *app_name
       loop: '{{ groups.g_backups }}'
-      name: Install key to backup2 store node
-      tags: tag
+      when: False
+      name: Install key to backup store nodes
 
-    - { meta: end_play, tags: always }
-
-    - authorized_key:
-        user: *app_name
-        key: '{{ lookup(file, local_ssh_pub_key_path) }}'
-      vars: { file: file }
-      delegate_to: '{{ item }}'
-      become: True
-      loop: '{{ groups.g_backups }}'
-      name: Install key to backup store node
-      tags: tag
-
-    - { meta: end_play, tags: always }
