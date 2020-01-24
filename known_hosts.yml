@@ -1,0 +1,46 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- hosts: g_duplicity
+  gather_facts: False
+  user: root
+  name: Add backup node to known_hosts
+
+  vars:
+    data: /usr/local/etc/epi
+
+  tasks:
+
+    - include_vars:
+        file: >-
+          {{ data }}/repo/infra-data-nodes/oxa-duplicity.js
+        name: duplicity
+      name: Use oxa-duplicity datalib
+
+    - set_fact:
+        backup_node: >-
+          {{ duplicity.fqdn[duplicity.dups.backup[inventory_hostname]] }}
+      name: Get backup node
+
+    - command: ssh-keygen -F {{ backup_node }}
+      register: keygen
+      failed_when: keygen.stderr != ''
+      changed_when: False
+      check_mode: False
+      name: Check remote ssh key
+
+    - command: ssh-keyscan -T5 {{ backup_node }}
+      register: keyscan
+      failed_when: keyscan.rc != 0 or keyscan.stdout == ''
+      changed_when: False
+      check_mode: False
+      when: keygen.rc == 1
+      name: Fetch remote ssh key
+
+    - lineinfile:
+        name: ~/.ssh/known_hosts
+        create: yes
+        line: "{{ item }}"
+      when: keygen.rc == 1
+      with_items: '{{ keyscan.stdout_lines|default([]) }}'
+      name: Add ssh keys to known_hosts
