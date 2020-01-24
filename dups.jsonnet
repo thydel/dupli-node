@@ -30,6 +30,7 @@ local info = '# Generated from ' + std.extVar('repo') + '\n\n';
     backup_fqdn: nodes.fqdn[self.backup],
     symmetric: dups.symmetric[node],
     etc: dups.etc[node],
+    when: if std.objectHas(nodes.dups.when, node) then nodes.dups.when[node] else conf.when,
   },
   [ node + '/' + dups[vol].seq + '.' + vol + '.dup' ]:
     mode + info + std.manifestIni((dups[vol] + args).default) for node in nodes.dups.nodes for vol in vols.choose(node)
