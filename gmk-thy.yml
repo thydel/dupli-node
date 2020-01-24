@@ -53,6 +53,11 @@
   version: master
   conf: thyepi
 
+- git: git@github.com:Epiconcept-Paris/infra-data-nodes-groups.git
+  name: nodes-groups
+  conf: thyepi
+  version: master
+
 - git: git@github.com:thydel/ansible-cfg.git
   name: ansible-cfg
   conf: thydel

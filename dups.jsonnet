@@ -2,7 +2,7 @@
 # to be invokes as `$0 -V repo=$(git config remote.origin.url) -S -m ${dir:-tmp}`
 
 local conf = import 'dups.libsonnet';
-local nodes = import 'ext/data-nodes/oxa-duplicity.jsonnet';
+local nodes = import 'infra-data-nodes/oxa-duplicity.js';
 
 local vols = {
   wheezy: [ 'root', 'boot', 'usr', 'var', 'home', 'space' ],
