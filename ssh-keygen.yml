@@ -5,6 +5,7 @@
 
 - name: Generate, commit and install ssh keys for a duplicity node
   hosts: g_duplicity
+  serial: 1
   gather_facts: False
 
   vars_files: paths.yml
