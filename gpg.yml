@@ -17,7 +17,9 @@
 
 - import_playbook: asserts.yml
 
-- hosts: g_duplicity
+- name: Create password and GPG keys
+  hosts: g_duplicity
+  serial: 1
   gather_facts: False
 
   vars_files: paths.yml
