@@ -1,5 +1,5 @@
 ---
 
-- src: paluh.augeas
+- src: https://github.com/paluh/ansible-augeas # paluh.augeas
   name: augeas
   version: master
