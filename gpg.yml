@@ -62,11 +62,12 @@
             environment:
               PASSWORD_STORE_GIT: '{{ password_store }}'
               PASSWORD_STORE_DIR: '{{ password_store_dir }}'
+              PASSWORD_STORE_ENABLE_EXTENSIONS: 'true'
               # now done via git_config after clone
               # GIT_SSH_COMMAND: 'ssh -i {{ git_ssh_key_file }}'
             delegate_to: localhost
 
-    - command: pass git ls-files -o --exclude-standard
+    - command: pass ogit ls-files -o --exclude-standard
       <<: *pass
       <<: *ro
       register: untracked
@@ -78,7 +79,7 @@
       when: untracked.stdout_lines|length|int
       name: Check that we only have a single new file
 
-    - command: pass git {{ item }}
+    - command: pass ogit {{ item }}
       <<: *pass
       when: untracked.stdout_lines|length|int
       with_items:
@@ -86,19 +87,19 @@
         - commit -m 'Adds {{ email }} via ansible'
       name: Add GPG key
 
-    - command: pass git rev-parse @
+    - command: pass ogit rev-parse @
       <<: *pass
       <<: *ro
       register: head
       name: Get head
 
-    - command: pass git rev-parse @{u}
+    - command: pass ogit rev-parse @{u}
       <<: *pass
       <<: *ro
       register: upstream
       name: Get upstream
 
-    - command: pass git push
+    - command: pass ogit push
       <<: *pass
       when: head.stdout != upstream.stdout
       name: Push new password
