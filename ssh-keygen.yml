@@ -91,11 +91,13 @@
         vars:
           email: '{{ app_name }}@{{ inventory_hostname }}'
           password: '{{ app_name }}/{{ email }} directory={{ password_store_dir }}'
+        no_log: True
         name: Get duplicity password
       - command:
         args:
           argv: [ ssh-keygen, -p, -N, '{{ passphrase }}', -f, *local_cpt_ssh_key_path ]
         delegate_to: localhost
+        no_log: True
         name: Set password to copy of private ssh key
 
     - delegate_to: localhost
