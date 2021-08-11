@@ -31,6 +31,16 @@
           command: set
           path: /files/etc/backupninja.conf/.anon/{{ item.option }}
           value: '{{ item.value }}'
+        when: False
+
+      - name: Config backupninja using lininfile instead of augeas
+        loop:
+          - { option: reportinfo, value: 'yes' }
+          - { option: reportspace, value: 'yes' }
+        lineinfile:
+          path: /etc/backupninja.conf
+          regexp: ^{{ item.option }}
+          line: '{{ item.option }} = {{ item.value }}'
 
       - { meta: noop, name: top }
 
