@@ -82,10 +82,21 @@
             - python3-paramiko
             - python3-setuptools
             - python3-setuptools-scm
-        when: ansible_distribution_major_version | int > 9
+        when: &post_stretch ansible_distribution_major_version | int > 9
 
       - name: Install
         command: "{{ python }} setup.py install --prefix={{ local }} --record files.txt"
         args:
           chdir: '{{ src }}/{{ base }}'
           creates: '{{ bin }}/{{ aname }}'
+
+    - become: True
+      when: *post_stretch
+      tags: pip
+      block:
+
+      - { name: Install pip, apt: { name: [ python3-pip ] }}
+
+      - name: install newer paramiko
+        vars: { pips: [ paramiko==2.5 ] }
+        pip: { executable: pip3, name: '{{ pips }}' }
