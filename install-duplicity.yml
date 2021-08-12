@@ -1,21 +1,41 @@
 #!/usr/bin/env ansible-playbook
 ---
 
+
 - name: Install duplicity
   hosts: g_duplicity
 
   vars:
-
     aname: duplicity
-    serie: 0.7
-    version: 18.2
-    base: '{{ aname }}-{{ serie }}.{{ version }}'
+    debian_9:
+      serie: 0.7
+      version: 18.2
+      branch: ""
+      python: python2
+    debian_10:
+      serie: 0.8
+      version: 20
+      branch: rel.
+      python: python3
+    prefix: '{{ "debian_" + ansible_distribution_major_version }}'
+    v: vars
+    serie: '{{ lookup(v, prefix).serie }}'
+    version: '{{ lookup(v, prefix).version }}'
+    branch: '{{ lookup(v, prefix).branch }}'
+    python: '{{ lookup(v, prefix).python }}'
+    base: '{{ aname }}-{{ branch }}{{ serie }}.{{ version }}'
     targz: '{{ base }}.tar.gz'
-    urlt: >
+    urlt: >-
       https://code.launchpad.net/{{ aname }}/
       {{ serie }}-series/{{ serie }}.{{ version }}/
       +download/{{ targz }}
-    url: '{{ urlt | replace(" ", "") }}'
+    old_url: '{{ urlt | replace(" ", "") }}'
+    new_url: https://gitlab.com/{{ aname }}/{{ aname }}/-/archive/{{ branch }}{{ serie }}.{{ version }}/{{ base }}.tar.gz
+    url: |-
+      {% if ansible_distribution_major_version | int < 10 %}{{ old_url }}{%- else %}{{ new_url }}{%- endif %}
+    # e.g.
+    # https://launchpad.net/duplicity/0.7-series/0.7.18.2/+download/duplicity-0.7.18.2.tar.gz
+    # https://gitlab.com/duplicity/duplicity/-/archive/rel.0.8.20/duplicity-rel.0.8.20.tar.gz
     local: /usr/local
     tmp: '{{ local }}/tmp'
     src: '{{ local }}/src'
@@ -51,8 +71,21 @@
       - name: Install deps
         apt: { name: [ gcc, python-dev, python-setuptools, python-fasteners, librsync-dev ] }
 
+      - name: Install debian > 9 deps
+        apt:
+          name:
+            - gettext
+            - python3-dev
+            - python3-distutils
+            - python3-fasteners
+            - python3-future
+            - python3-paramiko
+            - python3-setuptools
+            - python3-setuptools-scm
+        when: ansible_distribution_major_version | int > 9
+
       - name: Install
-        command: python setup.py install --prefix={{ local }} --record files.txt
+        command: "{{ python }} setup.py install --prefix={{ local }} --record files.txt"
         args:
           chdir: '{{ src }}/{{ base }}'
           creates: '{{ bin }}/{{ aname }}'
