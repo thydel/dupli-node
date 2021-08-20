@@ -57,7 +57,7 @@ local sep = '+';
         desthost:: $.backup_fqdn,
         destuser:: 'duplicity',
         destdir:: 'store/' + $.node + '/' + $.vol,
-        desturl: 'sftp://' + self.destuser + '@' + self.desthost + '/' + self.destdir,
+        desturl: $.proto + '://' + self.destuser + '@' + self.desthost + '/' + self.destdir,
       } + $.dests[$.vol],
       source: $.sources[$.vol],
     },
