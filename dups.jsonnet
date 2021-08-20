@@ -28,6 +28,7 @@ local info = '# Generated from ' + std.extVar('repo') + '\n\n';
     groups: dups.groups[node],
     backup: dups.backup[node],
     backup_fqdn: nodes.fqdn[self.backup],
+    proto: dups.proto[node],
     symmetric: dups.symmetric[node],
     etc: dups.etc[node],
     when: if std.objectHas(nodes.dups.when, node) then nodes.dups.when[node] else conf.when,
