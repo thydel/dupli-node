@@ -101,3 +101,4 @@
       - name: install newer paramiko
         vars: { pips: [ paramiko==2.5 ] }
         pip: { executable: pip3, name: '{{ pips }}' }
+        environment: { https_proxy: '{{ https_proxy }}' }
