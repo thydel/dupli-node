@@ -1,0 +1,11 @@
+--- dup.orig      2021-08-11 13:56:47.276538148 +0200
++++ dup 2021-08-12 23:57:37.889497374 +0200
+@@ -210,7 +210,7 @@
+
+ ### Cleanup options
+ if ! version_ge "$duplicity_version" '0.6.20'; then
+-   execstr_options="${execstr_options} --extra-clean"
++   : execstr_options="${execstr_options} --extra-clean"
+ fi
+
+ ### Temporary directory
