@@ -14,3 +14,4 @@
 collections:
   - ansible.posix
   - community.general
+  - moreati.jq
