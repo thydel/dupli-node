@@ -51,6 +51,7 @@
             {%- else %}
             install-backupninja-dup-debian10.patch
             {%- endif %}
+        when: False
 
       - vars:
           base: &base /usr/share/backupninja
@@ -74,3 +75,41 @@
             src: *patch
             basedir: *base
             remote_src: True
+
+        when: False
+
+      - set_fact: { patch_files: [ install-backupninja-dup.patch ] }
+        when: ansible_distribution_major_version | int < 10
+
+      - vars:
+          args:
+            patches: [ 1, 2 ]
+            prefix: install-backupninja-dup-debian10-
+            suffix: .patch
+          jq: . as $i | .patches | map(tostring | $i.prefix + . + $i.suffix)
+        set_fact: { patch_files: "{{ args | moreati.jq.jq(jq) }}" }
+        when: ansible_distribution_major_version | int >= 10
+
+      - vars:
+          base: /usr/share/backupninja
+          file: dup
+        block:
+        - name: Copy patch files
+          copy:
+            src: '{{ item }}'
+            dest: '{{ base }}'
+          loop: '{{ patch_files }}'
+
+        - stat: { path: '{{ base }}/{{ file }}' }
+          register: path
+        - loop: '{{ patch_files }}'
+          stat: { path: '{{ base }}/{{ item }}' }
+          register: patches
+
+        - name: Patch duplicity backend to allow password file inclusion and support newer version of duplicity
+          when: path.stat.exists and patches.results | moreati.jq.jq('map(.stat.exists) | all')
+          patch:
+            src: '{{ base }}/{{ item }}'
+            basedir: '{{ base }}'
+            remote_src: True
+          loop: '{{ patch_files }}'
