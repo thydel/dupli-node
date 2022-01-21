@@ -12,11 +12,12 @@
       version: 18.2
       branch: ""
       python: python2
-    debian_10:
+    debian_10: &debian_10
       serie: 0.8
       version: 20
       branch: rel.
       python: python3
+    debian_11: *debian_10
     prefix: '{{ "debian_" + ansible_distribution_major_version }}'
     v: vars
     serie: '{{ lookup(v, prefix).serie }}'
@@ -68,10 +69,15 @@
           extra_opts: --no-same-owner
           creates: '{{ src }}/{{ base }}'
 
-      - name: Install deps
+      - name: Install deps (debian < 11)
         apt: { name: [ gcc, python-dev, python-setuptools, python-fasteners, librsync-dev ] }
+        when: ansible_distribution_major_version | int < 11
 
-      - name: Install debian > 9 deps
+      - name: Install deps (debian == 11)
+        apt: { name: [ gcc, librsync-dev ] }
+        when: ansible_distribution_major_version | int == 11
+
+      - name: Install deps (debian > 9)
         apt:
           name:
             - gettext
