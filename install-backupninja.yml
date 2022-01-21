@@ -3,6 +3,7 @@
 
 - name: Install backupninja
   hosts: g_backupninja
+  gather_facts: True
 
   tasks:
 
@@ -12,7 +13,12 @@
       block:
 
       - name: Install pkgs
-        apt: { name: [ backupninja, augeas-tools, python-augeas, python3-augeas, python-yaml, python-paramiko ] }
+        apt: { name: [ backupninja, augeas-tools, python-augeas, python-yaml, python-paramiko ] }
+        when: ansible_distribution_release != "bullseye"
+
+      - name: Install pkgs
+        apt: { name: [ backupninja, augeas-tools, python3-augeas, python3-yaml, python3-paramiko ] }
+        when: ansible_distribution_release == "bullseye"
 
       - name: Install augeas lens
         copy:
