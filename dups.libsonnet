@@ -95,6 +95,7 @@ local sep = '+';
           '/space/automysqlbackup/weekly',
           '/space/automysqlbackup/monthly',
         ],
+        sqldump: [ '/space/nfsdata/*/automysqlbackup/' + i for i in [ 'daily', 'weekly', 'monthly' ]],
       },
     },
   },
