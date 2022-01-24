@@ -1,0 +1,94 @@
+#!/usr/bin/make -f
+
+top:; @date
+
+SHELL := $(shell which bash)
+.SHELLFLAGS := -euo pipefail -c
+
+host  := $(shell hostname -s)
+
+node  := bastion
+vol   := root
+
+bckuser := duplicity
+bcknode ?= backup2
+bcknet  := admin2
+
+base    := /space/duplicity
+conf    := /etc/duplicity
+passwd  ?= $(conf)/passwd-modern.txt
+idfile  := $(conf)/$(node)-duplicity
+
+sshopt  := --ssh-options -oIdentityFile=$(idfile)
+archopt := --archive-dir $(base)/archive
+tmpopt  := --tempdir $(base)/tmp
+
+name    := $(bcknode)+$(node)+$(vol)
+
+nameopt := --name $(name)
+
+dryopt   = $(if $(DRY),--dry-run)
+remopt   = $(if $(REM),$(sshopt))
+forceopt = $(if $(FORCE),--force)
+
+timeopt := $(if $(time),--time $(time))
+fileopt := $(if $(file),--file-to-restore $(file))
+
+path    := $(bckuser)@$(bcknode).$(bcknet)/store/$(node)/$(vol)
+scp     := scp://$(path)
+sftp    := sftp://$(path)
+local   := file://$(base)/store/$(node)/$(vol)
+url      = $(if $(REM),$(sftp),$(local))
+
+restore_dir := $(base)/restore/$(node)/$(vol)/$(or $(time),now)/$(dir $(file))
+list_dir    := $(base)/list/$(node)/$(vol)/$(or $(time),now)
+
+ifeq ($(if $(filter $(host),restore1 backup2),T),T)
+export PASSPHRASE := $(shell grep '^$(node) ' $(passwd) | sed -n 1p | awk '{print$$2}')
+else
+export PASSPHRASE != cat $(conf)/$(node)
+endif
+$(if $(PASSPHRASE),,$(error empty PASSPHRASE))
+
+ifeq ($(if $(filter $(host),prot1bdda1),T),T)
+keyopt := --encrypt-key '<duplicity@prot1bdda1>'
+endif
+
+commonopts         = $(remopt) $(dryopt) $(archopt) $(tmpopt) $(nameopt) $(keyopt)
+
+list-current-files  = mkdir -p $(list_dir);
+list-current-files += duplicity list-current-files $(commonopts) $(timeopt) $(url) > $(list_dir)/list.txt
+collection-status   = duplicity collection-status  $(commonopts) $(url)
+cleanup             = duplicity cleanup $(forceopt) $(commonopts) $(url)
+verify              = duplicity verify             $(commonopts) $(fileopt) $(timeopt) $(url) $(restore_dir)
+restore             = mkdir -p $(restore_dir);
+restore            += duplicity restore            $(commonopts) $(fileopt) $(timeopt) $(url) $(restore_dir)$(notdir $(file))
+list                = $(list-current-files)
+status              = $(collection-status)
+
+cmds := list-current-files list
+cmds += collection-status status
+cmds += cleanup
+cmds += verify
+cmds += restore
+
+$(cmds):; $(strip $($@))
+
+DRY :=
+DRY := True
+
+FORCE := True
+FORCE :=
+
+run := DRY :=
+rem := REM := True
+force := FORCE := True
+
+vartar := run rem force
+
+$(vartar):; @: $(eval $($@))
+
+install.nodes := restore1 backup1 backup2 backup3 backup4 prot1bdda1
+install := echo $(install.nodes) | xargs -n1 | xargs -i echo
+install += rsync -av$(if $(DRY),n) duplicityw root@{}.admin2:/usr/local/bin/duplicityw
+install:; @$($@)
