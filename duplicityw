@@ -7,15 +7,15 @@ SHELL := $(shell which bash)
 
 host  := $(shell hostname -s)
 
-node  := bastion
-vol   := root
+node  ?= $(host)
+vol   ?= root
 
 bckuser := duplicity
-bcknode ?= backup2
+bcknode ?= backup4
 bcknet  := admin2
 
 base    := /space/duplicity
-conf    := /etc/duplicity
+conf    := $(base)/etc
 passwd  ?= $(conf)/passwd-modern.txt
 idfile  := $(conf)/$(node)-duplicity
 
