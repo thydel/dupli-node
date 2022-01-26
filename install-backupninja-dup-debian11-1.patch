@@ -1,0 +1,22 @@
+--- dup.orig    2021-01-25 16:40:53.000000000 +0100
++++ dup 2022-01-25 17:04:51.628491477 +0100
+@@ -13,6 +13,7 @@
+
+ setsection gpg
+ getconf password
++getconf password_file
+ getconf signpassword
+ getconf sign no
+ getconf encryptkey
+@@ -60,6 +61,11 @@
+
+ [ -n "$include" ]  || fatal "No source includes specified."
+
++if [ "$password_file" ]; then
++   [ -r "$password_file" ] || fatal "Can't read password file"
++   password="$(cat "$password_file")"
++fi
++
+ [ -n "$password" ] || fatal "The password option must be set."
+
+ if [ -n "$signkey" -a -n "$encryptkey" -a "$signkey" != "$encryptkey" ]; then
