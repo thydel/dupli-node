@@ -1,0 +1,15 @@
+#!/usr/bin/env ansible-playbook
+---
+
+- name: &name Install duplicityw
+  hosts: g_default
+  gather_facts: False
+
+  tasks:
+
+    - copy:
+        src: duplicityw
+        dest: /usr/local/bin/
+        mode: preserve
+      become: True
+      name: *name
