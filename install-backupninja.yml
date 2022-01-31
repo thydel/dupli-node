@@ -92,7 +92,7 @@
       - vars:
           args:
             patches: [ 1, 2 ]
-            prefix: install-backupninja-dup-debian10-
+            prefix: install-backupninja-dup-debian{{ ansible_distribution_major_version }}-
             suffix: .patch
           jq: . as $i | .patches | map(tostring | $i.prefix + . + $i.suffix)
         set_fact: { patch_files: "{{ args | moreati.jq.jq(jq) }}" }
