@@ -88,7 +88,7 @@ local sep = '+';
     home: { include: '/home' },
     space: {
       include: '/space',
-      exclude: ['/space/duplicity'] + if std.length($.groups) > 0 then std.flattenArrays(std.map(function(group) self.excludes[group], $.groups)) else [],
+      exclude: ['/space/duplicity', '/space/2rm'] + if std.length($.groups) > 0 then std.flattenArrays(std.map(function(group) self.excludes[group], $.groups)) else [],
       excludes:: {
         automysqlbackup: [
           '/space/automysqlbackup/daily',
