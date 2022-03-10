@@ -26,4 +26,4 @@ $(stone): $(stone) = jsonnet $(jsonnet_libs) -V repo=$(repo) -m $(@D) -S $< && t
 $(stone): dups.jsonnet dups.libsonnet $(nodes) $(self); $($@)
 
 main: dirs $(stone)
-stone:; rm $(stone)
+stone:; rm -f $(stone)
