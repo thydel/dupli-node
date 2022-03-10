@@ -1,6 +1,8 @@
 #!/usr/bin/env jsonnet
 # to be invokes as `$0 -V repo=$(git config remote.origin.url) -S -m ${dir:-tmp}`
 
+local debug(obj) = (std.trace(std.toString(obj), obj));
+
 local conf = import 'dups.libsonnet';
 local nodes = import 'infra-data-nodes/oxa-duplicity.js';
 
@@ -26,6 +28,7 @@ local info = '# Generated from ' + std.extVar('repo') + '\n\n';
     node: node,
     local dups = nodes.dups,
     groups: dups.groups[node],
+    groupsOK: nodes.groups[node],
     backup: dups.backup[node],
     backup_fqdn: nodes.fqdn[self.backup],
     proto: dups.proto[node],
