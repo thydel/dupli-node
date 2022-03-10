@@ -75,10 +75,13 @@ local sep = '+';
     home: self.default,
     space: self.default { keepincroffulls: 2 },
   },
+  excludes: {
+    space: ['/space/duplicity', '/space/2rm' ]
+  },
   sources:: {
     root: {
       include: '/*', /**/
-      exclude: ['/space'],
+      exclude: if std.setMember('nospace', $.groupsOK) then $.excludes.space  else ['/space'],
     },
     boot: { include: '/boot' },
     var: {
@@ -88,7 +91,10 @@ local sep = '+';
     home: { include: '/home' },
     space: {
       include: '/space',
-      exclude: ['/space/duplicity', '/space/2rm'] + if std.length($.groups) > 0 then std.flattenArrays(std.map(function(group) self.excludes[group], $.groups)) else [],
+      // exclude: ['/space/duplicity', '/space/2rm'] + if std.length($.groups) > 0 then std.flattenArrays(std.map(function(group) self.excludes[group], $.groups)) else [],
+      exclude: $.excludes.space + if std.length($.groups) > 0 then std.flattenArrays(std.map(function(group) self.excludes[group], $.groups)) else [],
+      // local excludesForGroup(group) = if std.objectHas(self.excludes, group) then self.excludes[group] else [],
+      // exclude: $.excludes.space + if std.length($.groups) > 0 then std.flattenArrays(std.map(excludesForGroup, $.groups)) else [],
       excludes:: {
         automysqlbackup: [
           '/space/automysqlbackup/daily',
