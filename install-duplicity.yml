@@ -4,6 +4,7 @@
 
 - name: Install duplicity
   hosts: g_duplicity
+  gather_facts: True
 
   vars:
     aname: duplicity
