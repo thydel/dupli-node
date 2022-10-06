@@ -45,6 +45,8 @@ list_dir    := $(base)/list/$(node)/$(vol)/$(or $(time),now)
 
 ifeq ($(if $(filter $(host),restore1 backup2),T),T)
 export PASSPHRASE := $(shell grep '^$(node) ' $(passwd) | sed -n 1p | awk '{print$$2}')
+else ifdef PASSPHRASE
+export PASSPHRASE
 else
 export PASSPHRASE != cat $(conf)/$(node)
 endif
